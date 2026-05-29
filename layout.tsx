@@ -1,6 +1,7 @@
 // app/layout.tsx
 import React from 'react';
 import Script from 'next/script';
+import { WalletProvider } from '@/components/WalletProvider'; // Crucial integration link
 import '@/app/globals.css';
 
 export const metadata = {
@@ -28,12 +29,23 @@ export default function RootLayout({
                 a.async=1;a.src=u;m.parentNode.insertBefore(a,m)
               })(window,document,'script','https://novus.ai');
               
-              // Replace placeholder with your real project token inside your environment variables
               novus('init', '${process.env.NEXT_PUBLIC_NOVUS_PROJECT_TOKEN || "HACKATHON_MIND_THE_PRODUCT_2026"}');
               novus('track', 'pageview');
             `,
           }}
         />
+      </head>
+      <body className="bg-slate-950 text-slate-100 font-sans antialiased">
+        {/* Providing global Web3 state connection across all pages */}
+        <WalletProvider>
+          <main className="min-h-screen flex flex-col">
+            {children}
+          </main>
+        </WalletProvider>
+      </body>
+    </html>
+  );
+}
       </head>
       <body className="bg-slate-950 text-slate-100 font-sans antialiased">
         <main className="min-h-screen flex flex-col">
