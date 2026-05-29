@@ -1,39 +1,91 @@
-// page.tsx
-'use client';
-
-import React, { useState } from 'react';
-import DashboardHeader from './components/DashboardHeader';
-import SubmitMilestoneForm from './components/SubmitMilestoneForm';
-import InvestorReviewConsole from './components/InvestorReviewConsole';
-
-export default function Page() {
-  const [userRole, setUserRole] = useState<'builder' | 'investor'>('builder');
-  const [activeTab, setActiveTab] = useState<'kanban' | 'actions'>('kanban');
-
-  // Interactive local mock variables to let judges simulate real data workflows instantly
-  const [milestone, setMilestone] = useState({
-    id: 'm-902',
-    title: 'Phase 1 MVP: Core Smart Contract Integration & Telemetry Testing',
-    amountEscrowed: '0.50',
-    status: 'in_progress',
-    proofUrl: '',
-    builderNotes: '',
-  });
-
-  const handleSubmissionSuccess = () => {
-    setMilestone(prev => ({ ...prev, status: 'under_review', proofUrl: 'https://github.com' }));
-    setActiveTab('kanban');
-  };
-
-  const handleReviewComplete = () => {
-    setMilestone(prev => ({ ...prev, status: 'released' }));
-  };
-
+  // Replace the final return statement block at the bottom of your file with this:
   return (
-    <div className="min-h-screen bg-slate-950 flex flex-col font-sans selection:bg-cyan-500/30 selection:text-cyan-200">
-      {/* Integrated Presentation Layer Header */}
-      <DashboardHeader />
+    <div className={`min-h-screen bg-slate-950 text-slate-100 transition-all duration-300 ${celebrationActive ? "ring-4 ring-emerald-500/50 ring-inset" : ""}`}>
+      {celebrationActive && (
+        <div className="fixed inset-0 pointer-events-none z-50 overflow-hidden">
+          <div className="absolute inset-0 bg-emerald-500/5 animate-pulse" />
+          <div className="absolute top-1/4 left-1/2 -translate-x-1/2 animate-bounce">
+            <div className="bg-emerald-500 text-white px-6 py-3 rounded-full font-bold text-lg shadow-lg">
+              Funds Released Successfully
+            </div>
+          </div>
+        </div>
+      )}
 
+      <Header onConnectWallet={handleConnectWallet} />
+
+      <main className="container mx-auto px-4 py-4 lg:py-6 max-w-7xl pb-48 lg:pb-24">
+        
+        {/* Conditional Switch Layer: Displays Agreement Signer first if not executed */}
+        {!agreementComplete ? (
+          <div className="flex justify-center py-12">
+            <AgreementSigner 
+              projectId="p-301"
+              projectTitle="Synapse Core Deployment"
+              investorAddress="0x3bF...89a1"
+              builderAddress="0x71C...7f2d"
+              totalFunds="0.50 ETH"
+              onExecutionSuccess={() => {
+                setAgreementComplete(true);
+                addTelemetryLog("[Novus Event]: escrow_contract_initialized");
+              }}
+            />
+          </div>
+        ) : (
+          /* Main Functional Kanban Dashboard Unlocks post-signing */
+          <>
+            <ControlBanner viewMode={viewMode} onViewModeChange={handleViewModeChange} />
+
+            <KanbanBoard
+              card={card}
+              viewMode={viewMode}
+              isTransitioning={isTransitioning}
+              onOpenSubmitModal={() => {
+                setSlideOutOpen(true);
+                addTelemetryLog("[Novus Event]: submit_modal_opened { cardId: '1' }");
+              }}
+              onOpenAuditPanel={handleOpenAuditPanel}
+            />
+
+            <AuditPanel
+              open={auditPanelOpen}
+              submissionData={card.submissionData}
+              escrowAmount={card.escrowAmount}
+              disputeMode={disputeMode}
+              disputeFeedback={disputeFeedback}
+              onDisputeFeedbackChange={setDisputeFeedback}
+              onApprove={handleApprove}
+              onStartDispute={() => {
+                setDisputeMode(true);
+                addTelemetryLog("[Novus Event]: dispute_mode_entered");
+              }}
+              onConfirmDispute={handleConfirmDispute}
+              onClose={() => {
+                setAuditPanelOpen(false);
+                setDisputeMode(false);
+                setDisputeFeedback("");
+              }}
+            />
+
+            <ChatSandbox
+              messages={chatMessages}
+              viewMode={viewMode}
+              onSendMessage={handleSendChatMessage}
+            />
+          </>
+        )}
+      </main>
+
+      <SlideOutModal
+        open={slideOutOpen}
+        onClose={() => setSlideOutOpen(false)}
+        onSubmit={handleSubmitProof}
+      />
+
+      <TelemetryMonitor logs={telemetryLogs} />
+    </div>
+  );
+}
       {/* Main Workspace Frame */}
       <main className="flex-1 max-w-7xl w-full mx-auto p-6 space-y-8">
         
