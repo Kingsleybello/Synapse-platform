@@ -1,4 +1,188 @@
-  // Replace the final return statement block at the bottom of your file with this:
+// app/page.tsx
+"use client";
+
+import { useState, useCallback, useEffect } from "react";
+import { Header } from "@/components/synapse/header";
+import { ControlBanner } from "@/components/synapse/control-banner";
+import { KanbanBoard } from "@/components/synapse/kanban-board";
+import { SlideOutModal } from "@/components/synapse/slide-out-modal";
+import { AuditPanel } from "@/components/synapse/audit-panel";
+import { TelemetryMonitor } from "@/components/synapse/telemetry-monitor";
+import { ChatSandbox } from "@/components/synapse/chat-sandbox";
+import { AgreementSigner } from "@/components/synapse/agreement-signer";
+import type {
+  Card,
+  CardStatus,
+  ViewMode,
+  SubmissionData,
+  TelemetryLog,
+  ChatMessage,
+} from "@/lib/types";
+
+const initialCard: Card = {
+  id: "1",
+  title: "Phase 1 MVP: Core Smart Contract Integration & Telemetry Testing",
+  escrowAmount: "0.50 ETH",
+  status: "in-progress",
+  submissionData: null,
+};
+
+const generateId = () => Math.random().toString(36).substring(2, 9);
+
+export default function SynapseDashboard() {
+  const [agreementComplete, setAgreementComplete] = useState(false);
+  const [viewMode, setViewMode] = useState<ViewMode>("builder");
+  const [card, setCard] = useState<Card>(initialCard);
+  const [isTransitioning, setIsTransitioning] = useState(false);
+  const [celebrationActive, setCelebrationActive] = useState(false);
+
+  // Modal and panel states
+  const [slideOutOpen, setSlideOutOpen] = useState(false);
+  const [auditPanelOpen, setAuditPanelOpen] = useState(false);
+  const [disputeMode, setDisputeMode] = useState(false);
+  const [disputeFeedback, setDisputeFeedback] = useState("");
+
+  // Telemetry logs
+  const [telemetryLogs, setTelemetryLogs] = useState<TelemetryLog[]>([]);
+
+  // Chat messages
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
+    {
+      id: generateId(),
+      timestamp: new Date(Date.now() - 300000),
+      sender: "builder",
+      message: "Hey, I am starting work on the smart contract integration milestone.",
+    },
+    {
+      id: generateId(),
+      timestamp: new Date(Date.now() - 240000),
+      sender: "investor",
+      message: "Sounds good! Let me know when you have the first testnet deployment ready.",
+    },
+    {
+      id: generateId(),
+      timestamp: new Date(Date.now() - 180000),
+      sender: "builder",
+      message: "Will do. Expecting to have something for review by end of week.",
+    },
+  ]);
+
+  // Add telemetry log helper
+  const addTelemetryLog = useCallback(
+    (message: string, type: TelemetryLog["type"] = "event") => {
+      setTelemetryLogs((prev) => [
+        ...prev,
+        {
+          id: generateId(),
+          timestamp: new Date(),
+          message,
+          type,
+        },
+      ]);
+    },
+    []
+  );
+
+  // Add chat message helper
+  const addChatMessage = useCallback(
+    (sender: ChatMessage["sender"], message: string) => {
+      setChatMessages((prev) => [
+        ...prev,
+        {
+          id: generateId(),
+          timestamp: new Date(),
+          sender,
+          message,
+        },
+      ]);
+    },
+    []
+  );
+
+  // Initialize telemetry on mount
+  useEffect(() => {
+    addTelemetryLog(
+      "[Novus Initialized]: HACKATHON_MIND_THE_PRODUCT_2026",
+      "init"
+    );
+  }, [addTelemetryLog]);
+
+  const animateCardTransition = useCallback(
+    (newStatus: CardStatus, callback?: () => void) => {
+      setIsTransitioning(true);
+      setTimeout(() => {
+        setCard((prev) => ({ ...prev, status: newStatus }));
+        setIsTransitioning(false);
+        callback?.();
+      }, 400);
+    },
+    []
+  );
+
+  const handleConnectWallet = () => {
+    addTelemetryLog(
+      `[Novus Event]: user_authenticated { role: '${viewMode}' }`
+    );
+  };
+
+  const handleViewModeChange = (mode: ViewMode) => {
+    setViewMode(mode);
+    addTelemetryLog(`[Novus Event]: role_switched { newRole: '${mode}' }`);
+  };
+
+  const handleSubmitProof = (data: SubmissionData) => {
+    setCard((prev) => ({ ...prev, submissionData: data }));
+    setSlideOutOpen(false);
+    addTelemetryLog("[Novus Event]: milestone_submitted { id: 'm-902' }");
+    animateCardTransition("under-review");
+    addChatMessage(
+      "system",
+      `Builder submitted proof link: ${data.proofUrl}`
+    );
+  };
+
+  const handleApprove = () => {
+    setCelebrationActive(true);
+    addTelemetryLog(
+      "[Novus Event]: milestone_approved { payout: '0.50 ETH' }"
+    );
+    animateCardTransition("released", () => {
+      setTimeout(() => setCelebrationActive(false), 2500);
+    });
+    setAuditPanelOpen(false);
+    setDisputeMode(false);
+    addChatMessage(
+      "system",
+      "Milestone APPROVED! 0.50 ETH has been released to Builder wallet (0x71C...7f2d). Congratulations!"
+    );
+  };
+
+  const handleConfirmDispute = (feedback: string) => {
+    addTelemetryLog(
+      `[Novus Event]: milestone_rejected { feedback: '${feedback.substring(0, 30)}...' }`
+    );
+    animateCardTransition("in-progress", () => {
+      setCard((prev) => ({ ...prev, submissionData: null }));
+    });
+    setAuditPanelOpen(false);
+    setDisputeMode(false);
+    addChatMessage("investor", feedback);
+    setDisputeFeedback("");
+  };
+
+  const handleOpenAuditPanel = () => {
+    setAuditPanelOpen(true);
+    setDisputeMode(false);
+    addTelemetryLog("[Novus Event]: audit_console_opened { cardId: '1' }");
+  };
+
+  const handleSendChatMessage = (message: string) => {
+    addChatMessage(viewMode, message);
+    addTelemetryLog(
+      `[Novus Event]: chat_message_sent { from: '${viewMode}' }`
+    );
+  };
+
   return (
     <div className={`min-h-screen bg-slate-950 text-slate-100 transition-all duration-300 ${celebrationActive ? "ring-4 ring-emerald-500/50 ring-inset" : ""}`}>
       {celebrationActive && (
@@ -34,6 +218,58 @@
         ) : (
           /* Main Functional Kanban Dashboard Unlocks post-signing */
           <>
+            <ControlBanner viewMode={viewMode} onViewModeChange={handleViewModeChange} />
+
+            <KanbanBoard
+              card={card}
+              viewMode={viewMode}
+              isTransitioning={isTransitioning}
+              onOpenSubmitModal={() => {
+                setSlideOutOpen(true);
+                addTelemetryLog("[Novus Event]: submit_modal_opened { cardId: '1' }");
+              }}
+              onOpenAuditPanel={handleOpenAuditPanel}
+            />
+
+            <AuditPanel
+              open={auditPanelOpen}
+              submissionData={card.submissionData}
+              escrowAmount={card.escrowAmount}
+              disputeMode={disputeMode}
+              disputeFeedback={disputeFeedback}
+              onDisputeFeedbackChange={setDisputeFeedback}
+              onApprove={handleApprove}
+              onStartDispute={() => {
+                setDisputeMode(true);
+                addTelemetryLog("[Novus Event]: dispute_mode_entered");
+              }}
+              onConfirmDispute={handleConfirmDispute}
+              onClose={() => {
+                setAuditPanelOpen(false);
+                setDisputeMode(false);
+                setDisputeFeedback("");
+              }}
+            />
+
+            <ChatSandbox
+              messages={chatMessages}
+              viewMode={viewMode}
+              onSendMessage={handleSendChatMessage}
+            />
+          </>
+        )}
+      </main>
+
+      <SlideOutModal
+        open={slideOutOpen}
+        onClose={() => setSlideOutOpen(false)}
+        onSubmit={handleSubmitProof}
+      />
+
+      <TelemetryMonitor logs={telemetryLogs} />
+    </div>
+  );
+}
             <ControlBanner viewMode={viewMode} onViewModeChange={handleViewModeChange} />
 
             <KanbanBoard
