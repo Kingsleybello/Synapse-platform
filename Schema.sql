@@ -30,3 +30,16 @@ CREATE TABLE milestones (
     submitted_at TIMESTAMP WITH TIME ZONE,
     reviewed_at TIMESTAMP WITH TIME ZONE
 );
+
+-- Cryptographic Agreement Storage
+CREATE TABLE agreements (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    project_id UUID REFERENCES projects(id) ON DELETE CASCADE,
+    agreement_text TEXT NOT NULL,
+    total_funding_amount NUMERIC NOT NULL,
+    investor_signature VARCHAR(132), -- Cryptographic hash signed by investor wallet
+    builder_signature VARCHAR(132),  -- Cryptographic hash signed by builder wallet
+    is_fully_executed BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    executed_at TIMESTAMP WITH TIME ZONE
+);
